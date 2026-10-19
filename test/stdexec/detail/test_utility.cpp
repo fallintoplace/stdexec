@@ -22,6 +22,7 @@ import std;
 import stdexec;
 #else
 #  include <stdexec/__detail/__meta.hpp>
+#  include <stdexec/__detail/__static_vector.hpp>
 
 #  include <optional>
 #endif
@@ -77,5 +78,27 @@ namespace
     static_assert(is_same_v<__minvoke<__msort<>>, __mlist<>>);
     static_assert(is_same_v<__minvoke<__munique<__msort<>>>, __mlist<>>);
   }
+
+#if !STDEXEC_USE_MODULES()
+  TEST_CASE("static_vector::erase returns the next element", "[detail][static_vector]")
+  {
+    __static_vector<int, 5> values{1, 2, 3, 4, 5};
+
+    auto next = values.erase(values.begin() + 1, values.begin() + 3);
+    REQUIRE(next == values.begin() + 1);
+    REQUIRE(values.size() == 3);
+    CHECK(*next == 4);
+    CHECK(values[0] == 1);
+    CHECK(values[1] == 4);
+    CHECK(values[2] == 5);
+
+    next = values.erase(values.begin(), values.begin());
+    CHECK(next == values.begin());
+
+    next = values.erase(values.begin() + 2, values.end());
+    CHECK(next == values.end());
+    CHECK(values.size() == 2);
+  }
+#endif
 
 }  // namespace
