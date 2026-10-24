@@ -35,6 +35,8 @@
 #include <test_common/schedulers.hpp>
 #include <test_common/senders.hpp>
 #include <test_common/type_helpers.hpp>
+#include <array>
+#include <ranges>
 #include <thread>
 
 namespace
@@ -78,6 +80,37 @@ namespace
                                  ignore_values_fn_t{});
     }
   };
+
+#if !STDEXEC_NO_STDCPP_EXCEPTIONS()
+  struct merge_subscribe_error
+  {};
+
+  struct throwing_begin_range
+  {
+    using iterator = std::array<int, 1>::iterator;
+
+    auto begin() -> iterator
+    {
+      throw merge_subscribe_error{};
+    }
+
+    auto end() noexcept -> iterator
+    {
+      return values_.end();
+    }
+
+    std::array<int, 1> values_{0};
+  };
+
+  TEST_CASE("merge - subscribe propagates child exceptions", "[sequence_senders][merge][iterate]")
+  {
+    throwing_begin_range range;
+    auto merged = exec::merge(exec::iterate(std::views::all(range)), exec::empty_sequence());
+
+    STATIC_REQUIRE_FALSE(noexcept(exec::subscribe(merged, null_receiver{})));
+    CHECK_THROWS_AS(exec::subscribe(merged, null_receiver{}), merge_subscribe_error);
+  }
+#endif  // !STDEXEC_NO_STDCPP_EXCEPTIONS()
 
   TEST_CASE("merge - merge two sequence senders of no elements",
             "[sequence_senders][merge][empty_sequence]")

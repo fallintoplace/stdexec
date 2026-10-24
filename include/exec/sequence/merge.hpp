@@ -130,7 +130,7 @@ namespace experimental::execution
       {
         template <class _Receiver, class... _Sequences>
         auto operator()(_Receiver& __rcvr, __ignore, __ignore, _Sequences... __sequences)
-          noexcept(__nothrow_decay_copyable<_Sequences...>) -> __operation<_Receiver, _Sequences...>
+          -> __operation<_Receiver, _Sequences...>
         {
           return __operation<_Receiver, _Sequences...>{static_cast<_Receiver&&>(__rcvr),
                                                        static_cast<_Sequences&&>(__sequences)...};
