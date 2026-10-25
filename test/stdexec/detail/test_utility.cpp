@@ -21,10 +21,12 @@
 import std;
 import stdexec;
 #else
+#  include <stdexec/__detail/__intrusive_ptr.hpp>
 #  include <stdexec/__detail/__meta.hpp>
 #  include <stdexec/__detail/__static_vector.hpp>
 
 #  include <optional>
+#  include <utility>
 #endif
 
 using namespace std;
@@ -101,6 +103,30 @@ namespace
     __static_vector<int, 0> empty;
     CHECK(empty.erase(empty.begin(), empty.end()) == empty.end());
   }
+
+  TEST_CASE("intrusive_ptr get handles empty pointers", "[detail][intrusive_ptr]")
+  {
+    struct test_value
+    {
+      int value;
+    };
+
+    constexpr __intrusive_ptr<test_value> empty;
+    STATIC_REQUIRE(empty.get() == nullptr);
+
+    auto ptr = __make_intrusive<test_value>(42);
+    REQUIRE(ptr.get() != nullptr);
+    CHECK(ptr.get() == &*ptr);
+    CHECK(ptr->value == 42);
+
+    auto moved = std::move(ptr);
+    CHECK(ptr.get() == nullptr);
+    CHECK(moved.get() != nullptr);
+
+    moved.reset();
+    CHECK(moved.get() == nullptr);
+  }
+
 #endif
 
 }  // namespace

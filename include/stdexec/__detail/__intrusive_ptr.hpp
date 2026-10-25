@@ -271,7 +271,7 @@ namespace STDEXEC
 
       constexpr auto get() const noexcept -> _Ty*
       {
-        return &__data_->__value;
+        return __data_ ? &__data_->__value : nullptr;
       }
 
       constexpr auto operator->() const noexcept -> _Ty*
