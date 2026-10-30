@@ -67,7 +67,11 @@ namespace STDEXEC
       friend constexpr auto
       operator+([[maybe_unused]] __static_vector<_Ty, _Capacity0> const &__lhs,  //
                 [[maybe_unused]] __static_vector<_Ty, _Capacity1> const &__rhs)
-        noexcept(__nothrow_copy_constructible<_Ty>) -> __static_vector<_Ty, _Capacity0 + _Capacity1>
+        noexcept(__nothrow_copy_constructible<_Ty>
+                 && ((_Capacity0 == 0 || _Capacity1 == 0)
+                     || (__nothrow_constructible_from<_Ty> && __nothrow_copy_assignable<_Ty>
+                         && __nothrow_move_constructible<_Ty>)))
+        -> __static_vector<_Ty, _Capacity0 + _Capacity1>
       {
         if constexpr (_Capacity0 == 0)
         {
@@ -99,7 +103,7 @@ namespace STDEXEC
     __static_vector() = default;
 
     constexpr __static_vector(std::initializer_list<value_type> __init)
-      noexcept(__nothrow_copy_constructible<value_type>)
+      noexcept(__nothrow_constructible_from<value_type> && __nothrow_copy_assignable<value_type>)
     {
       auto const __count = (std::min) (__init.size(), _Capacity);
       auto const __end   = std::ranges::copy_n(__init.begin(), __count, __data_).out;
@@ -259,7 +263,8 @@ namespace STDEXEC
   __static_vector(_First, _Rest...) -> __static_vector<_First, 1 + sizeof...(_Rest)>;
 
   template <class _First, __same_as<_First>... _Rest>
-  constexpr auto __make_static_vector(_First __first, _Rest... __rest) noexcept
+  constexpr auto __make_static_vector(_First __first, _Rest... __rest)
+    noexcept(noexcept(__static_vector<_First, 1 + sizeof...(_Rest)>{__first, __rest...}))
   {
     return __static_vector<_First, 1 + sizeof...(_Rest)>{__first, __rest...};
   }

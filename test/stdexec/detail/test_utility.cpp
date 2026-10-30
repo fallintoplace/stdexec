@@ -24,7 +24,9 @@ import stdexec;
 #  include <stdexec/__detail/__meta.hpp>
 #  include <stdexec/__detail/__static_vector.hpp>
 
+#  include <initializer_list>
 #  include <optional>
+#  include <utility>
 #endif
 
 using namespace std;
@@ -100,6 +102,67 @@ namespace
 
     __static_vector<int, 0> empty;
     CHECK(empty.erase(empty.begin(), empty.end()) == empty.end());
+  }
+
+  TEST_CASE("static_vector noexcept matches its construction and copy operations",
+            "[detail][static_vector]")
+  {
+    struct throwing_assignment
+    {
+      throwing_assignment() = default;
+      throwing_assignment(throwing_assignment const &) noexcept = default;
+      auto operator=(throwing_assignment const &) noexcept(false) -> throwing_assignment &
+      {
+        return *this;
+      }
+    };
+
+    struct throwing_default
+    {
+      throwing_default() noexcept(false) {}
+      throwing_default(throwing_default const &) noexcept = default;
+      auto operator=(throwing_default const &) noexcept -> throwing_default &
+      {
+        return *this;
+      }
+    };
+
+    struct throwing_move
+    {
+      throwing_move() = default;
+      throwing_move(throwing_move const &) noexcept = default;
+      throwing_move(throwing_move &&) noexcept(false) {}
+      auto operator=(throwing_move const &) noexcept -> throwing_move &
+      {
+        return *this;
+      }
+    };
+
+    using assign_vector  = __static_vector<throwing_assignment, 1>;
+    using default_vector = __static_vector<throwing_default, 1>;
+    using move_vector    = __static_vector<throwing_move, 1>;
+    using int_vector     = __static_vector<int, 1>;
+
+    static_assert(noexcept(int_vector(std::declval<std::initializer_list<int>>())));
+    static_assert(noexcept(std::declval<int_vector const &>()
+                           + std::declval<int_vector const &>()));
+    static_assert(noexcept(__make_static_vector(1, 2)));
+
+    static_assert(!noexcept(assign_vector(
+      std::declval<std::initializer_list<throwing_assignment>>())));
+    static_assert(!noexcept(std::declval<assign_vector const &>()
+                            + std::declval<assign_vector const &>()));
+    static_assert(!noexcept(__make_static_vector(throwing_assignment{})));
+
+    static_assert(!noexcept(default_vector(
+      std::declval<std::initializer_list<throwing_default>>())));
+    static_assert(!noexcept(std::declval<default_vector const &>()
+                            + std::declval<default_vector const &>()));
+
+    static_assert(!noexcept(std::declval<move_vector const &>()
+                            + std::declval<move_vector const &>()));
+    static_assert(noexcept(std::declval<__static_vector<throwing_move, 0> const &>()
+                           + std::declval<move_vector const &>()));
   }
 #endif
 
